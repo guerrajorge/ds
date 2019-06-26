@@ -89,18 +89,47 @@ for col in dataset.columns:
     if col not in ['user_id', 'feature_2', 'label']:
         dataset.select(col).describe().show()
 
-# dataset.select('label').distinct().rdd.map(lambda r: r[0]).collect()
-# possible values = 0, 1
-dataset = convertColumn(dataset, ['label'], IntegerType())
-# dataset.select('feature_6').distinct().rdd.map(lambda r: r[0]).collect()
- # possible values = 1, 2, 3, 4
-dataset = convertColumn(dataset, ['feature_6'], IntegerType())
-# dataset.select('feature_2').distinct().rdd.map(lambda r: r[0]).collect()
-# possible values = A, B, C
-dataset = convertColumn(dataset, ['feature_2'], StringType())
-# modify the rest of the variable to DoubleType 
-for col in df.columns:
-    if col not in ['user_id', 'feature_2', 'feature_6', 'label']:
-        dataset = convertColumn(dataset, [col], DoubleType())
+# # dataset.select('label').distinct().rdd.map(lambda r: r[0]).collect()
+# # possible values = 0, 1
+# dataset = convertColumn(dataset, ['label'], IntegerType())
+# # dataset.select('feature_6').distinct().rdd.map(lambda r: r[0]).collect()
+#  # possible values = 1, 2, 3, 4
+# dataset = convertColumn(dataset, ['feature_6'], IntegerType())
+# # dataset.select('feature_2').distinct().rdd.map(lambda r: r[0]).collect()
+# # possible values = A, B, C
+# dataset = convertColumn(dataset, ['feature_2'], StringType())
+# # modify the rest of the variable to DoubleType 
+# for col in dataset.columns:
+#     if col not in ['user_id', 'feature_2', 'feature_6', 'label']:
+#         dataset = convertColumn(dataset, [col], DoubleType())
+
+dataset = dataset.select('label', 'feature_1','feature_2', 'feature_3','feature_4','feature_5', 'feature_6', 'feature_7','feature_8','feature_9', 'feature_10')
+cols = dataset.columns
+
+from pyspark.ml.feature import OneHotEncoderEstimator, StringIndexer, VectorAssembler
+
+categoricalColumns = ['feature_2']
+stages = list()
+for categoricalCol in categoricalColumns:
+    stringIndexer = StringIndexer(inputCol = categoricalCol, outputCol = categoricalCol + 'Index')
+    encoder = OneHotEncoderEstimator(inputCols=[stringIndexer.getOutputCol()], outputCols=[categoricalCol + "classVec"])
+    stages += [stringIndexer, encoder]
+    
+label_stringIdx = StringIndexer(inputCol = 'label', outputCol = 'label')
+stages += [label_stringIdx]
+
+numericCols = ['feature_1', 'feature_3','feature_4','feature_5', 'feature_6', 'feature_7','feature_8','feature_9', 'feature_10']
+assemblerInputs = [c + "classVec" for c in categoricalColumns] + numericCols
+assembler = VectorAssembler(inputCols=assemblerInputs, outputCol="features")
+stages += [assembler]
+
+from pyspark.ml import Pipeline
+
+pipeline = Pipeline(stages = stages)
+pipelineModel = pipeline.fit(dataset)
+dataset = pipelineModel.transform(dataset)
+selectedCols = ['label', 'features'] + cols
+dataset = dataset.select(selectedCols)
+dataset.printSchema()
 
 train_data, test_data = dataset.randomSplit([.8,.2],seed=7)
