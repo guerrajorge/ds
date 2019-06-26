@@ -1,8 +1,10 @@
-
 from pyspark.sql import SparkSession
 import re
 from pyspark.sql import Row
-from pyspark.sql.types import StringType, BinaryType, DoubleType
+from pyspark.sql.types import StringType, IntegerType, DoubleType
+import random
+
+random.seed(1)
 
 
 def data_merger():
@@ -99,16 +101,27 @@ def data_processing(df):
         if col not in ['user_id', 'feature_2', 'label']:
             df.select(col).describe().show()
     
-    # since its eather 0 or 1
-    df = convertColumn(df, ['label'], BinaryType())
-    # since its A, B, C
+    # dataset.select('label').distinct().rdd.map(lambda r: r[0]).collect()
+    # possible values = 0, 1
+    df = convertColumn(df, ['label'], IntegerType())
+    # dataset.select('feature_6').distinct().rdd.map(lambda r: r[0]).collect()
+     # possible values = 1, 2, 3, 4
+    df = convertColumn(df, ['feature_6'], IntegerType())
+    # dataset.select('feature_2').distinct().rdd.map(lambda r: r[0]).collect()
+    # possible values = A, B, C
     df = convertColumn(df, ['feature_2'], StringType())
-    # analyse all the variables
+    # modify the rest of the variable to DoubleType 
     for col in df.columns:
-        if col not in ['user_id', 'feature_2', 'label']:
-            df = convertColumn(dataset, ['feature_9'], DoubleType())
+        if col not in ['user_id', 'feature_2', 'feature_6', 'label']:
+            df = convertColumn(dataset, [col], DoubleType())
     
     return df
+
+
+def build_model(df):
+    
+    # Split the data into train and test sets
+    train_data, test_data = df.randomSplit([.8,.2],seed=7)
         
 def main():
     
@@ -119,6 +132,8 @@ def main():
     
     # function to process the dataset
     dataset = data_processing(df=dataset)
+    
+    build_model(df=dataset)
 
     spark.stop()
     
