@@ -19,7 +19,7 @@ def main():
     #	samples.customs = user_id, features_[9|10]
     #	samples.tsv = user_id, labels
     
-    json_filename = "dataset/samples/samples.json"
+    json_filename = 'samples/samples.json'
     df = spark.read.load(json_filename, format='json')
     
     # create sparkContext object
@@ -27,17 +27,17 @@ def main():
     
     # Processing samples.custom file
     # read the file
-    rdd = sc.textFile("dataset/samples/samples.custom")
+    rdd = sc.textFile('samples/samples.custom')
     # split each line and obtain 3 columns: user_id, feature_9 and feature_10
-    rdd = rdd.map(lambda line: re.split("user_id=|feature_9=|feature_10=", line)[1:])
+    rdd = rdd.map(lambda line: re.split('user_id=|feature_9=|feature_10=', line)[1:])
     # convert rdd to dataframe
     feat_9_10_df = rdd.map(lambda line: Row(user_id=line[0], feature_9=line[1], feature_10=line[2])).toDF()
     
     # Processing samples.tsv file
     # read the file
-    rdd = sc.textFile("dataset/samples/samples.tsv")
+    rdd = sc.textFile('samples/samples.tsv')
     # split each line and obtain user_id and labels
-    label_rdd = rdd.map(lambda line: line.split("\t"))
+    label_rdd = rdd.map(lambda line: line.split('\t'))
     # convert label_rdd to df
     label_df = label_rdd.map(lambda line: Row(user_name=line[0], label=line[1])).toDF()
     
