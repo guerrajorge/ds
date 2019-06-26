@@ -1,0 +1,26 @@
+Spark Terminology:
+
+- Resilient Distributed Dataset (RDD) = fundamental data structure of Spark. It is an immutable distributed collection of objects. Each dataset in RDD is divided into logical partitions, which may be computed on different nodes of the cluster. RDDs can contain any type of Python, Java, or Scala objects, including user-defined classes.
+
+(better definition)
+RDD, which is the most basic building block of Spark. An RDD simply represents data but it’s not one object, a collection of records, a result set or a data set. That is because it’s intended for data that resides on multiple computers: a single RDD could be spread over thousands of Java Virtual Machines (JVMs), because Spark automatically partitions the data under the hood to get this parallelism. Of course, you can adjust the parallelism to get more partitions. That’s why an RDD is actually a collection of partitions.
+
+Transformation vs Actions
+
+Most common transformations (lazy operations on a RDD that create one or many new RDDs): 
+	map()
+	filter()
+	flatMap()
+	sample()
+	randomSplit()
+	coalesce()
+	repartition()
+Most common actions (produce non-RDD values: they return a result set, a number, a file, ...):
+	reduce()
+	collect()
+	first()
+	take()
+	count()
+	saveAsHadoopFile()
+
+- Read-Eval(uate)-Print-Loop (REPL) environment = whatever you type in is read, evaluated and printed out to you so that you can continue your analysis
