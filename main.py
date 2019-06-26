@@ -17,6 +17,7 @@ from pyspark.ml.classification import DecisionTreeClassifier
 from pyspark.ml.classification import RandomForestClassifier
 from pyspark.ml.classification import GBTClassifier
 from pyspark.ml.tuning import ParamGridBuilder, CrossValidator
+from pyspark.mllib.evaluation import BinaryClassificationMetrics
 
 random.seed(1)
 
@@ -160,6 +161,37 @@ def data_processing(df):
     return df
 
 
+def evaluation_metrics(model, x_test):
+    
+    # Compute raw scores on the test set
+    predictionAndLabels = x_test.map(lambda cl: (float(model.predict(cl.features)), cl.label))
+
+    # Instantiate metrics object
+    metrics = BinaryClassificationMetrics(predictionAndLabels)
+
+    # Overall statistics
+    precision = metrics.precision()
+    recall = metrics.recall()
+    f1Score = metrics.fMeasure()
+    print("Summary Stats")
+    print("Precision = %s" % precision)
+    print("Recall = %s" % recall)
+    print("F1 Score = %s" % f1Score)
+
+    # Statistics by class
+    labels = data.map(lambda lp: lp.label).distinct().collect()
+    for label in sorted(labels):
+        print("Class %s precision = %s" % (label, metrics.precision(label)))
+        print("Class %s recall = %s" % (label, metrics.recall(label)))
+        print("Class %s F1 Measure = %s" % (label, metrics.fMeasure(label, beta=1.0)))
+
+    # Weighted stats
+    print("Weighted recall = %s" % metrics.weightedRecall)
+    print("Weighted precision = %s" % metrics.weightedPrecision)
+    print("Weighted F(1) Score = %s" % metrics.weightedFMeasure())
+    print("Weighted F(0.5) Score = %s" % metrics.weightedFMeasure(beta=0.5))
+    print("Weighted false positive rate = %s" % metrics.weightedFalsePositiveRate)
+
 def build_model(df):
     """
     this function implements three models: logistic regression, decision trees and random forest
@@ -182,41 +214,23 @@ def build_model(df):
     lr_predictions = lr_model.transform(test_data)
 
     evaluator = BinaryClassificationEvaluator()
-    print('Logistic Regression Test Area Under ROC', evaluator.evaluate(lr_predictions))
+    evaluation_metrics(model=lr_model, x_test=test_data)
+    print('Logistic Regression Test Area Under ROC = {0}'.format(evaluator.evaluate(lr_predictions)))
 
     dt = DecisionTreeClassifier(featuresCol = 'features', labelCol = 'label', maxDepth = 3)
     df_model = dt.fit(train_data)
     df_predictions = df_model.transform(test_data)
 
     evaluator = BinaryClassificationEvaluator()
-    print('Decission Tree Test Area Under ROC', evaluator.evaluate(df_predictions))
+    print('Decission Tree Test Area Under ROC = {0}'.format(evaluator.evaluate(df_predictions)))
 
     rf = RandomForestClassifier(featuresCol = 'features', labelCol = 'label')
     rf_model = rf.fit(train_data)
     rf_predictions = rf_model.transform(test_data)
 
     evaluator = BinaryClassificationEvaluator()
-    print('Random Forest Test Area Under ROC', evaluator.evaluate(rf_predictions))
-    
-    gbt = GBTClassifier(maxIter=10)
-    gbt_model = gbt.fit(train_data)
-    gbt_predictions = gbt_model.transform(test_data)
+    print('Random Forest Test Area Under ROC = {0}'.format(evaluator.evaluate(rf_predictions)))
 
-    evaluator = BinaryClassificationEvaluator()
-    print('Gradient-Boosted Tree Classifier Test Area Under ROC', evaluator.evaluate(gbt_predictions))
-
-#     # cross-validation
-#     paramGrid = (ParamGridBuilder()
-#                  .addGrid(gbt.maxDepth, [2, 4, 6])
-#                  .addGrid(gbt.maxBins, [20, 60])
-#                  .addGrid(gbt.maxIter, [10, 20])
-#                  .build())
-#     cv = CrossValidator(estimator=gbt, estimatorParamMaps=paramGrid, evaluator=evaluator, numFolds=5)
-#     # Run cross validations.  This can take about 6 minutes since it is training over 20 trees!
-#     cv_gbt_odel = cv.fit(train_data)
-#     cv_gbt_predictions = cv_gbt_odel.transform(test_data)
-#     result = evaluator.evaluate(cv_gbt_predictions)
-#     print('Gradient-Boosted Tree Classifier CV evaluated result = {0}'.format(result))
         
 def main():
     
