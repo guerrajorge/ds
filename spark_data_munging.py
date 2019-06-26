@@ -123,15 +123,21 @@ def data_processing(df):
     categoricalColumns = ['feature_2']
     stages = list()
     for categoricalCol in categoricalColumns:
+        # StringIndexer encodes a string column of labels to a column of label indices.
         stringIndexer = StringIndexer(inputCol = categoricalCol, outputCol = categoricalCol + 'Index')
+        # maps a categorical feature, represented as a label index, to a binary vector
         encoder = OneHotEncoderEstimator(inputCols=[stringIndexer.getOutputCol()], outputCols=[categoricalCol + "classVec"])
+        # include the column index and its representation
         stages += [stringIndexer, encoder]
-
+    
+    # concatenate all the variables
     numericCols = ['feature_1', 'feature_3','feature_4','feature_5', 'feature_6', 'feature_7','feature_8','feature_9', 'feature_10']
     assemblerInputs = [c + "classVec" for c in categoricalColumns] + numericCols
+    # VectorAssembler is a transformer that combines a given list of columns into a single vector column
     assembler = VectorAssembler(inputCols=assemblerInputs, outputCol="features")
     stages += [assembler]
-
+    
+    # chain multiple transformers and estimators together
     pipeline = Pipeline(stages = stages)
     pipelineModel = pipeline.fit(df)
     df = pipelineModel.transform(df)
@@ -153,6 +159,7 @@ def build_model(df):
     
     print("Training Dataset Count: {0}".format(train_data.count()))
     print("Test Dataset Count: {0}".format(test_data.count()))
+    print('')
 
     lr = LogisticRegression(featuresCol = 'features', labelCol = 'label', maxIter=10)
     lr_model = lr.fit(train_data)
@@ -162,28 +169,28 @@ def build_model(df):
     lr_predictions = lr_model.transform(test_data)
 
     evaluator = BinaryClassificationEvaluator()
-    print('Test Area Under ROC', evaluator.evaluate(lr_predictions))
+    print('Logistic Regression Test Area Under ROC', evaluator.evaluate(lr_predictions))
 
     dt = DecisionTreeClassifier(featuresCol = 'features', labelCol = 'label', maxDepth = 3)
     df_model = dt.fit(train_data)
     df_predictions = df_model.transform(test_data)
 
     evaluator = BinaryClassificationEvaluator()
-    print('Test Area Under ROC', evaluator.evaluate(df_predictions))
+    print('Decission Tree Test Area Under ROC', evaluator.evaluate(df_predictions))
 
     rf = RandomForestClassifier(featuresCol = 'features', labelCol = 'label')
     rf_model = rf.fit(train_data)
     rf_predictions = rf_model.transform(test_data)
 
     evaluator = BinaryClassificationEvaluator()
-    print('Test Area Under ROC', evaluator.evaluate(rf_predictions))
+    print('Random Forest Test Area Under ROC', evaluator.evaluate(rf_predictions))
     
     gbt = GBTClassifier(maxIter=10)
     gbt_model = gbt.fit(train_data)
     gbt_predictions = gbt_model.transform(test_data)
 
     evaluator = BinaryClassificationEvaluator()
-    print('Test Area Under ROC', evaluator.evaluate(gbt_predictions))
+    print('Gradient-Boosted Tree Classifier Test Area Under ROC', evaluator.evaluate(gbt_predictions))
 
     # cross-validation
     paramGrid = (ParamGridBuilder()
@@ -195,7 +202,8 @@ def build_model(df):
     # Run cross validations.  This can take about 6 minutes since it is training over 20 trees!
     cv_gbt_odel = cv.fit(train_data)
     cv_gbt_predictions = cv_gbt_odel.transform(test_data)
-    evaluator.evaluate(cv_gbt_predictions)
+    result = evaluator.evaluate(cv_gbt_predictions)
+    print('Gradient-Boosted Tree Classifier CV evaluated result = {0}'.format(result))
         
 def main():
     
@@ -204,7 +212,7 @@ def main():
     # supressing INFO logs
     spark_object.sparkContext.setLogLevel("ERROR")
     
-    print('\n\nRunning Spark Data Munging\n\n')
+    print('\n\nRunning Full-Stack Sparkg\n\n')
     
     # function to merge files
     dataset = data_merger(spark=spark_object)
@@ -215,6 +223,8 @@ def main():
     build_model(df=dataset)
 
     spark_object.stop()
+    
+    print('\n\nScript finished Successfully\n\n')
     
 if __name__ == '__main__':
     
