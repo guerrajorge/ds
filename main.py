@@ -164,7 +164,7 @@ def data_processing(df):
 def evaluation_metrics(model, x_test):
     
     # Compute raw scores on the test set
-    predictionAndLabels = x_test.map(lambda cl: (float(model.predict(cl.features)), cl.label))
+    predictionAndLabels = x_test.rdd.map(lambda cl: (float(model.predict(cl.features)), cl.label))
 
     # Instantiate metrics object
     metrics = BinaryClassificationMetrics(predictionAndLabels)
