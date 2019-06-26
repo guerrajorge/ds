@@ -204,18 +204,18 @@ def build_model(df):
     evaluator = BinaryClassificationEvaluator()
     print('Gradient-Boosted Tree Classifier Test Area Under ROC', evaluator.evaluate(gbt_predictions))
 
-    # cross-validation
-    paramGrid = (ParamGridBuilder()
-                 .addGrid(gbt.maxDepth, [2, 4, 6])
-                 .addGrid(gbt.maxBins, [20, 60])
-                 .addGrid(gbt.maxIter, [10, 20])
-                 .build())
-    cv = CrossValidator(estimator=gbt, estimatorParamMaps=paramGrid, evaluator=evaluator, numFolds=5)
-    # Run cross validations.  This can take about 6 minutes since it is training over 20 trees!
-    cv_gbt_odel = cv.fit(train_data)
-    cv_gbt_predictions = cv_gbt_odel.transform(test_data)
-    result = evaluator.evaluate(cv_gbt_predictions)
-    print('Gradient-Boosted Tree Classifier CV evaluated result = {0}'.format(result))
+#     # cross-validation
+#     paramGrid = (ParamGridBuilder()
+#                  .addGrid(gbt.maxDepth, [2, 4, 6])
+#                  .addGrid(gbt.maxBins, [20, 60])
+#                  .addGrid(gbt.maxIter, [10, 20])
+#                  .build())
+#     cv = CrossValidator(estimator=gbt, estimatorParamMaps=paramGrid, evaluator=evaluator, numFolds=5)
+#     # Run cross validations.  This can take about 6 minutes since it is training over 20 trees!
+#     cv_gbt_odel = cv.fit(train_data)
+#     cv_gbt_predictions = cv_gbt_odel.transform(test_data)
+#     result = evaluator.evaluate(cv_gbt_predictions)
+#     print('Gradient-Boosted Tree Classifier CV evaluated result = {0}'.format(result))
         
 def main():
     
