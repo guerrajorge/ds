@@ -104,6 +104,18 @@ def data_processing(df):
     process the dataset by modifying dtype
     :return: a processed dataframe
     """
+    
+    total_instances = float(df.count())
+    total_variables = len(df.columns)
+    
+    # check for class balanced
+    class_responses = df.groupBy('label').count().collect()
+    for cr in class_response:
+        print('label = {0}, count = {0} (%{2:.2f})'.format(cr[0], cr[1], cr[1]/total_instances))
+    
+    # check for missiness
+    df.select([count(when(isnan(c), c)).alias(c) for c in df.columns]).show()
+    
     # analyse all the variables
     for col in df.columns:
         if col not in ['user_id', 'feature_2', 'label']:
