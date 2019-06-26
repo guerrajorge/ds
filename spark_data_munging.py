@@ -99,8 +99,8 @@ def data_processing(df):
     df = convertColumn(dataset, ['feature_2'], StringType())
     # analyse all the variables
     for col in dataset.columns:
-    if col not in ['user_id', 'feature_2', 'label']:
-        df = convertColumn(dataset, ['feature_9'], DoubleType())
+        if col not in ['user_id', 'feature_2', 'label']:
+            df = convertColumn(dataset, ['feature_9'], DoubleType())
     
     return df
         
