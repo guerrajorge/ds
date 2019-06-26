@@ -29,6 +29,11 @@ def data_merger():
     #	samples.customs = user_id, features_[9|10]
     #	samples.tsv = user_id, labels
     
+    # creating spark object
+    spark = SparkSession.builder.getOrCreate()
+    # supressing INFO logs
+    spark.sparkContext.setLogLevel("ERROR")
+    
     # create sparkContext object
     sc = spark.sparkContext
     
@@ -105,11 +110,6 @@ def data_processing(df):
     return df
         
 def main():
-    
-    # creating spark object
-    spark = SparkSession.builder.getOrCreate()
-    # supressing INFO logs
-    spark.sparkContext.setLogLevel("ERROR")
     
     print('\n\nRunning Spark Data Munging\n\n')
     
