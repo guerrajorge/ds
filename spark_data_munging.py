@@ -5,17 +5,6 @@ from pyspark.sql import Row
 from pyspark.sql.types import StringType, BinaryType, DoubleType
 
 
-def convertColumn(df, names, new_type):
-    """
-    :param df: complete dataset df
-    :param names: column of interest
-    :param newType: type to change it to
-    :return: dataframe with the column of intered with a modified dtype
-    """
-    for name in names: 
-        df = df.withColumn(name, df[name].cast(new_type))
-    return df 
-
 def data_merger():
     """
     combine all the files
@@ -88,6 +77,18 @@ def data_merger():
     return n_dataset
 
 
+def convertColumn(df, names, new_type):
+    """
+    :param df: complete dataset df
+    :param names: column of interest
+    :param newType: type to change it to
+    :return: dataframe with the column of intered with a modified dtype
+    """
+    for name in names: 
+        df = df.withColumn(name, df[name].cast(new_type))
+    return df 
+
+
 def data_processing(df):
     """
     process the dataset by modifying dtype
@@ -99,11 +100,11 @@ def data_processing(df):
             df.select(col).describe().show()
     
     # since its eather 0 or 1
-    df = convertColumn(dataset, ['label'], BinaryType())
+    df = convertColumn(df, ['label'], BinaryType())
     # since its A, B, C
-    df = convertColumn(dataset, ['feature_2'], StringType())
+    df = convertColumn(df, ['feature_2'], StringType())
     # analyse all the variables
-    for col in dataset.columns:
+    for col in df.columns:
         if col not in ['user_id', 'feature_2', 'label']:
             df = convertColumn(dataset, ['feature_9'], DoubleType())
     

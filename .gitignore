@@ -4,3 +4,4 @@ samples*
 dataset/*
 spark-2.4.3-bin-hadoop2.7/*
 spark_data_munging.ipynb
+spark_terminology.txt
