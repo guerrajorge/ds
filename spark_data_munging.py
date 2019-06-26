@@ -65,9 +65,9 @@ def data_merger(spark):
     print('\tnumber of cols = {0}, rows={1}'.format(df_2_n_cols, df_2_n_rows))
     
     if df_2_n_rows == df_n_rows:
-        print('same \"user_id\"s found in both files')
+        print('\tsame \"user_id\"s found in both files')
     else:
-        print('diff \"user_id\"s found in files')
+        print('\tdiff \"user_id\"s found in files')
     
     print('merging json + custom and tsv')
     # merge new df with the labels df based on user_id
@@ -77,9 +77,9 @@ def data_merger(spark):
     print('\tnumber of cols = {0}, rows={1}'.format(dataset_n_cols, dataset_n_rows))
     
     if dataset_n_rows == df_n_rows:
-        print('same \"user_id\"s found in both files')
+        print('\tsame \"user_id\"s found in both files')
     else:
-        print('diff \"user_id\"s found in files')
+        print('\tdiff \"user_id\"s found in files')
     
     print('df schema after merger')
     n_dataset.printSchema()
@@ -111,9 +111,9 @@ def data_processing(df):
     
     # # dataset.select('label').distinct().rdd.map(lambda r: r[0]).collect()
     # # possible values = 0, 1
-    df = convertColumn(dataset, ['label'], IntegerType())
+    df = convertColumn(df, ['label'], IntegerType())
     # modify the rest of the variable to DoubleType 
-    for col in dataset.columns:
+    for col in df.columns:
         if col not in ['user_id', 'feature_2', 'feature_6', 'label']:
             df = convertColumn(df, [col], DoubleType())
 
