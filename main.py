@@ -109,7 +109,7 @@ def data_processing(df):
     total_variables = len(df.columns)
     
     # check for class balanced
-    class_responses = df.groupBy('label').count().collect()
+    class_response = df.groupBy('label').count().collect()
     for cr in class_response:
         print('label = {0}, count = {0} (%{2:.2f})'.format(cr[0], cr[1], cr[1]/total_instances))
     
