@@ -2,15 +2,25 @@
 from pyspark.sql import SparkSession
 import re
 from pyspark.sql import Row
+from pyspark.sql.types import StringType, BinaryType, DoubleType
 
-def main():
-    
-    # creating spark object
-    spark = SparkSession.builder.getOrCreate()
-    # supressing INFO logs
-    spark.sparkContext.setLogLevel("ERROR")
-    
-    print('\n\nRunning Spark Data Munging\n\n')
+
+def convertColumn(df, names, new_type):
+    """
+    :param df: complete dataset df
+    :param names: column of interest
+    :param newType: type to change it to
+    :return: dataframe with the column of intered with a modified dtype
+    """
+    for name in names: 
+        df = df.withColumn(name, df[name].cast(new_type))
+    return df 
+
+def data_merger():
+    """
+    combine all the files
+    :return: a agregated dataframe
+    """
     
     print('loading files')
     # reading files
@@ -19,11 +29,11 @@ def main():
     #	samples.customs = user_id, features_[9|10]
     #	samples.tsv = user_id, labels
     
-    json_filename = 'samples/samples.json'
-    df = spark.read.load(json_filename, format='json')
-    
     # create sparkContext object
     sc = spark.sparkContext
+    
+    json_filename = 'samples/samples.json'
+    df = spark.read.load(json_filename, format='json')
     
     # Processing samples.custom file
     # read the file
@@ -57,8 +67,8 @@ def main():
     
     print('merging json + custom and tsv')
     # merge new df with the labels df based on user_id
-    dataset = df_2.join(label_df,['user_id'],'inner')
-    dataset_n_cols, dataset_n_rows = len(dataset.columns), dataset.count()
+    n_dataset = df_2.join(label_df,['user_id'],'inner')
+    dataset_n_cols, dataset_n_rows = len(n_dataset.columns), n_dataset.count()
     # sanity check
     print('\tnumber of cols = {0}, rows={1}'.format(dataset_n_cols, dataset_n_rows))
     
@@ -67,9 +77,47 @@ def main():
     else:
         print('diff \"user_id\"s found in files')
     
-#     print('df schema after merger')
-    dataset.printSchema()
+    print('df schema after merger')
+    n_dataset.printSchema()
     
+    return n_dataset
+
+
+def data_processing(df):
+    """
+    process the dataset by modifying dtype
+    :return: a processed dataframe
+    """
+    # analyse all the variables
+    for col in df.columns:
+        if col not in ['user_id', 'feature_2', 'label']:
+            df.select(col).describe().show()
+    
+    # since its eather 0 or 1
+    df = convertColumn(dataset, ['label'], BinaryType())
+    # since its A, B, C
+    df = convertColumn(dataset, ['feature_2'], StringType())
+    # analyse all the variables
+    for col in dataset.columns:
+    if col not in ['user_id', 'feature_2', 'label']:
+        df = convertColumn(dataset, ['feature_9'], DoubleType())
+    
+    return df
+        
+def main():
+    
+    # creating spark object
+    spark = SparkSession.builder.getOrCreate()
+    # supressing INFO logs
+    spark.sparkContext.setLogLevel("ERROR")
+    
+    print('\n\nRunning Spark Data Munging\n\n')
+    
+    # function to merge files
+    dataset = data_merger()
+    
+    # function to process the dataset
+    dataset = data_processing(df=dataset)
 
     spark.stop()
     
