@@ -7,13 +7,55 @@ import random
 random.seed(1)
 
 
-def data_merger():
+def convertColumn(df, names, new_type):
     """
-    combine all the files
-    :return: a agregated dataframe
+    :param df: complete dataset df
+    :param names: column of interest
+    :param newType: type to change it to
+    :return: dataframe with the column of intered with a modified dtype
     """
+    for name in names: 
+        df = df.withColumn(name, df[name].cast(new_type))
+    return df 
+
+
+def data_processing(df):
+    """
+    process the dataset by modifying dtype
+    :return: a processed dataframe
+    """
+    # analyse all the variables
+    for col in df.columns:
+        if col not in ['user_id', 'feature_2', 'label']:
+            df.select(col).describe().show()
     
-    print('loading files')
+    # dataset.select('label').distinct().rdd.map(lambda r: r[0]).collect()
+    # possible values = 0, 1
+    df = convertColumn(df, ['label'], IntegerType())
+    # dataset.select('feature_6').distinct().rdd.map(lambda r: r[0]).collect()
+     # possible values = 1, 2, 3, 4
+    df = convertColumn(df, ['feature_6'], IntegerType())
+    # dataset.select('feature_2').distinct().rdd.map(lambda r: r[0]).collect()
+    # possible values = A, B, C
+    df = convertColumn(df, ['feature_2'], StringType())
+    # modify the rest of the variable to DoubleType 
+    for col in df.columns:
+        if col not in ['user_id', 'feature_2', 'feature_6', 'label']:
+            df = convertColumn(dataset, [col], DoubleType())
+    
+    return df
+
+
+def build_model(df):
+    
+    # Split the data into train and test sets
+    train_data, test_data = df.randomSplit([.8,.2],seed=7)
+        
+def main():
+    
+    print('\n\nRunning Spark Data Munging\n\n')
+    
+    #    print('loading files')
     # reading files
     # dataset description
     #	samples.json = user_id, features_[1|8]
@@ -63,8 +105,8 @@ def data_merger():
     
     print('merging json + custom and tsv')
     # merge new df with the labels df based on user_id
-    n_dataset = df_2.join(label_df,['user_id'],'inner')
-    dataset_n_cols, dataset_n_rows = len(n_dataset.columns), n_dataset.count()
+    dataset = df_2.join(label_df,['user_id'],'inner')
+    dataset_n_cols, dataset_n_rows = len(dataset.columns), n_dataset.count()
     # sanity check
     print('\tnumber of cols = {0}, rows={1}'.format(dataset_n_cols, dataset_n_rows))
     
@@ -74,68 +116,27 @@ def data_merger():
         print('diff \"user_id\"s found in files')
     
     print('df schema after merger')
-    n_dataset.printSchema()
+    dataset.printSchema()
     
-    return n_dataset
-
-
-def convertColumn(df, names, new_type):
-    """
-    :param df: complete dataset df
-    :param names: column of interest
-    :param newType: type to change it to
-    :return: dataframe with the column of intered with a modified dtype
-    """
-    for name in names: 
-        df = df.withColumn(name, df[name].cast(new_type))
-    return df 
-
-
-def data_processing(df):
-    """
-    process the dataset by modifying dtype
-    :return: a processed dataframe
-    """
     # analyse all the variables
-    for col in df.columns:
+    for col in dataset.columns:
         if col not in ['user_id', 'feature_2', 'label']:
-            df.select(col).describe().show()
+            dataset.select(col).describe().show()
     
     # dataset.select('label').distinct().rdd.map(lambda r: r[0]).collect()
     # possible values = 0, 1
-    df = convertColumn(df, ['label'], IntegerType())
+    dataset = convertColumn(dataset, ['label'], IntegerType())
     # dataset.select('feature_6').distinct().rdd.map(lambda r: r[0]).collect()
      # possible values = 1, 2, 3, 4
-    df = convertColumn(df, ['feature_6'], IntegerType())
+    dataset = convertColumn(dataset, ['feature_6'], IntegerType())
     # dataset.select('feature_2').distinct().rdd.map(lambda r: r[0]).collect()
     # possible values = A, B, C
-    df = convertColumn(df, ['feature_2'], StringType())
+    dataset = convertColumn(dataset, ['feature_2'], StringType())
     # modify the rest of the variable to DoubleType 
     for col in df.columns:
         if col not in ['user_id', 'feature_2', 'feature_6', 'label']:
-            df = convertColumn(df, [col], DoubleType())
-    
-    return df
+            dataset = convertColumn(dataset, [col], DoubleType())
 
-
-def build_model(df):
-    
-    # Split the data into train and test sets
-    train_data, test_data = df.randomSplit([.8,.2],seed=7)
-        
-def main():
-    
-    print('\n\nRunning Spark Data Munging\n\n')
-    
-    # function to merge files
-    dataset = data_merger()
-    
-    # function to process the dataset
-    dataset = data_processing(df=dataset)
-    
-    build_model(df=dataset)
-
-    spark.stop()
     
 if __name__ == '__main__':
     
