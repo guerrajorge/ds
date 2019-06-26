@@ -114,9 +114,6 @@ for categoricalCol in categoricalColumns:
     stringIndexer = StringIndexer(inputCol = categoricalCol, outputCol = categoricalCol + 'Index')
     encoder = OneHotEncoderEstimator(inputCols=[stringIndexer.getOutputCol()], outputCols=[categoricalCol + "classVec"])
     stages += [stringIndexer, encoder]
-    
-label_stringIdx = StringIndexer(inputCol = 'label', outputCol = 'label')
-stages += [label_stringIdx]
 
 numericCols = ['feature_1', 'feature_3','feature_4','feature_5', 'feature_6', 'feature_7','feature_8','feature_9', 'feature_10']
 assemblerInputs = [c + "classVec" for c in categoricalColumns] + numericCols
@@ -128,8 +125,42 @@ from pyspark.ml import Pipeline
 pipeline = Pipeline(stages = stages)
 pipelineModel = pipeline.fit(dataset)
 dataset = pipelineModel.transform(dataset)
-selectedCols = ['label', 'features'] + cols
+selectedCols = ['features'] + cols
 dataset = dataset.select(selectedCols)
 dataset.printSchema()
 
 train_data, test_data = dataset.randomSplit([.8,.2],seed=7)
+
+print("Training Dataset Count: " + str(train_data.count()))
+print("Test Dataset Count: " + str(test_data.count()))
+
+from pyspark.ml.classification import LogisticRegression
+from pyspark.ml.evaluation import BinaryClassificationEvaluator
+from pyspark.ml.classification import DecisionTreeClassifier
+from pyspark.ml.classification import RandomForestClassifier
+
+
+lr = LogisticRegression(featuresCol = 'features', labelCol = 'label', maxIter=10)
+lr_model = lr.fit(train_data)
+
+training_summary = lr_model.summary
+
+lr_predictions = lr_model.transform(test)
+
+evaluator = BinaryClassificationEvaluator()
+print('Test Area Under ROC', evaluator.evaluate(lr_predictions))
+
+dt = DecisionTreeClassifier(featuresCol = 'features', labelCol = 'label', maxDepth = 3)
+df_model = dt.fit(train_data)
+df_predictions = df_model.transform(test_data)
+
+evaluator = BinaryClassificationEvaluator()
+print('Test Area Under ROC', evaluator.evaluate(df_predictions))
+
+rf = RandomForestClassifier(featuresCol = 'features', labelCol = 'label')
+rf_model = rf.fit(train)
+rf_predictions = rf_model.transform(test)
+
+evaluator = BinaryClassificationEvaluator()
+print('Test Area Under ROC', evaluator.evaluate(rf_predictions))
+
