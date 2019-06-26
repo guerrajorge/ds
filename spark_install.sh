@@ -67,7 +67,6 @@ alias pyspark=\"$spark_folder/bin/pyspark \
     --conf spark.sql.warehouse.dir='file:///tmp/spark-warehouse' \
     --packages com.databricks:spark-csv_2.11:1.5.0 \"
 
-export 
 " >> $shell_profile
 
 echo "install complete"
