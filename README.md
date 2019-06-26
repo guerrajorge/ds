@@ -9,4 +9,20 @@ This repository contains the following files:
     - preprocess them: check for class balance, missiness, variables dtype
     - build ML models, logistic regression, decission tree, and random forest, for a binary classification task
     - evaluates the results using the following metrics: AUC, precission, recall, F1
+    
+
+## Intructions
+
+```
+unzip ds.zip
+cd ds/
+chmod +x spark_install.sh
+./spark_install.sh
+```
+
+Make sure "samples.zip" is located /ds/samples.zip
+```
+unzip samples.zip
+summit-bash main.py
+```
 

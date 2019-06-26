@@ -65,9 +65,7 @@ export PYSPARK_DRIVER_PYTHON=python
 export PATH=\$SPARK_HOME/bin:\$PATH
 alias pyspark=\"$spark_folder/bin/pyspark \
     --conf spark.sql.warehouse.dir='file:///tmp/spark-warehouse' \
-    --packages com.databricks:spark-csv_2.11:1.5.0 \"
+    --packages com.databricks:spark-csv_2.11:1.5.0 \"" >> $shell_profile
 
-" >> $shell_profile
-
-echo "install complete"
+echo "installation completed"
 

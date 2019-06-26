@@ -174,7 +174,8 @@ def build_model(df):
     print("Training Dataset Count: {0}".format(train_data.count()))
     print("Test Dataset Count: {0}".format(test_data.count()))
     print('')
-
+    
+    print('training Logitic Regression')
     lr = LogisticRegression(featuresCol = 'features', labelCol = 'label', maxIter=10)
     lr_model = lr.fit(train_data)
 
@@ -184,14 +185,16 @@ def build_model(df):
 
     evaluator = BinaryClassificationEvaluator()
     print('Logistic Regression Test Area Under ROC = {0}'.format(evaluator.evaluate(lr_predictions)))
-
+    
+    print('\ntraining Decission Tree')
     dt = DecisionTreeClassifier(featuresCol = 'features', labelCol = 'label', maxDepth = 3)
     df_model = dt.fit(train_data)
     df_predictions = df_model.transform(test_data)
 
     evaluator = BinaryClassificationEvaluator()
     print('Decission Tree Test Area Under ROC = {0}'.format(evaluator.evaluate(df_predictions)))
-
+    
+    print('\ntraining Random Forest')
     rf = RandomForestClassifier(featuresCol = 'features', labelCol = 'label')
     rf_model = rf.fit(train_data)
     rf_predictions = rf_model.transform(test_data)
