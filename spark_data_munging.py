@@ -12,7 +12,7 @@ def main():
     
     print('\n\nRunning Spark Data Munging\n\n')
     
-    print('reading and merging files')
+    print('loading files')
     # reading files
     # dataset description
     #	samples.json = user_id, features_[1|8]
@@ -43,39 +43,32 @@ def main():
     
     print('merging json and custom')
     df_n_cols, df_n_rows = len(df.columns), df.count()
-    print('number of cols = {0}, rows={1}'.format(df_n_cols, df_n_rows))
+    print('\tnumber of cols = {0}, rows={1}'.format(df_n_cols, df_n_rows))
     # merge df with the rest of the features df based on user_id
     df_2 = df.join(feat_9_10_df,['user_id'],'inner')
     df_2_n_cols, df_2_n_rows = len(df_2.columns), df_2.count()
     # sanity check
-    print('number of cols = {0}, rows={1}'.format(df_2_n_cols, df_2_n_rows))
+    print('\tnumber of cols = {0}, rows={1}'.format(df_2_n_cols, df_2_n_rows))
     
     if df_2_n_rows == df_n_rows:
-        print('same user_id found in both files')
+        print('same \"user_id\"s found in both files')
     else:
-        print('diff user_id found in both files')
-    
-    print('df schema after merge')
-    df_2.printSchema()
-    print('first 5 observations')
-    df_2.show(5, truncate=True)
+        print('diff \"user_id\"s found in files')
     
     print('merging json + custom and tsv')
     # merge new df with the labels df based on user_id
     dataset = df_2.join(label_df,['user_id'],'inner')
     dataset_n_cols, dataset_n_rows = len(dataset.columns), dataset.count()
     # sanity check
-    print('number of cols = {0}, rows={1}'.format(dataset_n_cols, dataset_n_rows))
+    print('\tnumber of cols = {0}, rows={1}'.format(dataset_n_cols, dataset_n_rows))
     
     if dataset_n_rows == df_n_rows:
-        print('same user_id found in both files')
+        print('same \"user_id\"s found in both files')
     else:
-        print('diff user_id found in both files')
+        print('diff \"user_id\"s found in files')
     
-    print('df schema after merge')
+#     print('df schema after merger')
     dataset.printSchema()
-    print('first 5 observations')
-    dataset.show(5, truncate=True)
     
 
     spark.stop()
