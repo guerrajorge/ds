@@ -1,23 +1,23 @@
-from pyspark.sql import SparkSession
+# python functions
 import re
-from pyspark.sql import Row
-from pyspark.sql.types import StringType, IntegerType, DoubleType
 import random
 
+# spark processing tools
+from pyspark.sql import SparkSession
+from pyspark.sql import Row
+from pyspark.sql.types import StringType, IntegerType, DoubleType
+from pyspark.ml.feature import OneHotEncoderEstimator, StringIndexer, VectorAssembler
+from pyspark.ml import Pipeline
+
+# ML models
+from pyspark.ml.classification import LogisticRegression
+from pyspark.ml.evaluation import BinaryClassificationEvaluator
+from pyspark.ml.classification import DecisionTreeClassifier
+from pyspark.ml.classification import RandomForestClassifier
+from pyspark.ml.classification import GBTClassifier
+from pyspark.ml.tuning import ParamGridBuilder, CrossValidator
+
 random.seed(1)
-
-
-def convertColumn(df, names, new_type):
-    """
-    :param df: complete dataset df
-    :param names: column of interest
-    :param newType: type to change it to
-    :return: dataframe with the column of intered with a modified dtype
-    """
-    for name in names: 
-        df = df.withColumn(name, df[name].cast(new_type))
-    return df 
-    
             
 print('\n\nRunning Spark Data Munging\n\n')
 
@@ -89,24 +89,34 @@ for col in dataset.columns:
     if col not in ['user_id', 'feature_2', 'label']:
         dataset.select(col).describe().show()
 
+def convertColumn(df, names, new_type):
+    """
+    :param df: complete dataset df
+    :param names: column of interest
+    :param newType: type to change it to
+    :return: dataframe with the column of intered with a modified dtype
+    """
+    for name in names: 
+        df = df.withColumn(name, df[name].cast(new_type))
+    return df 
+
+
 # # dataset.select('label').distinct().rdd.map(lambda r: r[0]).collect()
 # # possible values = 0, 1
-# dataset = convertColumn(dataset, ['label'], IntegerType())
+dataset = convertColumn(dataset, ['label'], IntegerType())
 # # dataset.select('feature_6').distinct().rdd.map(lambda r: r[0]).collect()
 #  # possible values = 1, 2, 3, 4
 # dataset = convertColumn(dataset, ['feature_6'], IntegerType())
 # # dataset.select('feature_2').distinct().rdd.map(lambda r: r[0]).collect()
 # # possible values = A, B, C
 # dataset = convertColumn(dataset, ['feature_2'], StringType())
-# # modify the rest of the variable to DoubleType 
-# for col in dataset.columns:
-#     if col not in ['user_id', 'feature_2', 'feature_6', 'label']:
-#         dataset = convertColumn(dataset, [col], DoubleType())
+# modify the rest of the variable to DoubleType 
+for col in dataset.columns:
+    if col not in ['user_id', 'feature_2', 'feature_6', 'label']:
+        dataset = convertColumn(dataset, [col], DoubleType())
 
 dataset = dataset.select('label', 'feature_1','feature_2', 'feature_3','feature_4','feature_5', 'feature_6', 'feature_7','feature_8','feature_9', 'feature_10')
 cols = dataset.columns
-
-from pyspark.ml.feature import OneHotEncoderEstimator, StringIndexer, VectorAssembler
 
 categoricalColumns = ['feature_2']
 stages = list()
@@ -120,8 +130,6 @@ assemblerInputs = [c + "classVec" for c in categoricalColumns] + numericCols
 assembler = VectorAssembler(inputCols=assemblerInputs, outputCol="features")
 stages += [assembler]
 
-from pyspark.ml import Pipeline
-
 pipeline = Pipeline(stages = stages)
 pipelineModel = pipeline.fit(dataset)
 dataset = pipelineModel.transform(dataset)
@@ -131,13 +139,15 @@ dataset.printSchema()
 
 train_data, test_data = dataset.randomSplit([.8,.2],seed=7)
 
-print("Training Dataset Count: " + str(train_data.count()))
-print("Test Dataset Count: " + str(test_data.count()))
+print("Training Dataset Count: {0}".format(train_data.count()))
+print("Test Dataset Count: {0}".format(test_data.count()))
 
 from pyspark.ml.classification import LogisticRegression
 from pyspark.ml.evaluation import BinaryClassificationEvaluator
 from pyspark.ml.classification import DecisionTreeClassifier
 from pyspark.ml.classification import RandomForestClassifier
+from pyspark.ml.classification import GBTClassifier
+from pyspark.ml.tuning import ParamGridBuilder, CrossValidator
 
 
 lr = LogisticRegression(featuresCol = 'features', labelCol = 'label', maxIter=10)
@@ -145,7 +155,7 @@ lr_model = lr.fit(train_data)
 
 training_summary = lr_model.summary
 
-lr_predictions = lr_model.transform(test)
+lr_predictions = lr_model.transform(test_data)
 
 evaluator = BinaryClassificationEvaluator()
 print('Test Area Under ROC', evaluator.evaluate(lr_predictions))
@@ -163,4 +173,23 @@ rf_predictions = rf_model.transform(test)
 
 evaluator = BinaryClassificationEvaluator()
 print('Test Area Under ROC', evaluator.evaluate(rf_predictions))
+
+gbt = GBTClassifier(maxIter=10)
+gbt_model = gbt.fit(train_data)
+gbt_predictions = gbt_model.transform(test_data)
+
+evaluator = BinaryClassificationEvaluator()
+print('Test Area Under ROC', evaluator.evaluate(gbt_predictions))
+
+# cross-validation
+paramGrid = (ParamGridBuilder()
+             .addGrid(gbt.maxDepth, [2, 4, 6])
+             .addGrid(gbt.maxBins, [20, 60])
+             .addGrid(gbt.maxIter, [10, 20])
+             .build())
+cv = CrossValidator(estimator=gbt, estimatorParamMaps=paramGrid, evaluator=evaluator, numFolds=5)
+# Run cross validations.  This can take about 6 minutes since it is training over 20 trees!
+cv_gbt_odel = cv.fit(train_data)
+cv_gbt_predictions = cv_gbt_odel.transform(test_data)
+evaluator.evaluate(cv_gbt_predictions)
 

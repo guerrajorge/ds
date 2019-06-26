@@ -1,8 +1,21 @@
-from pyspark.sql import SparkSession
+# python functions
 import re
+import random
+
+# spark processing tools
+from pyspark.sql import SparkSession
 from pyspark.sql import Row
 from pyspark.sql.types import StringType, IntegerType, DoubleType
-import random
+from pyspark.ml.feature import OneHotEncoderEstimator, StringIndexer, VectorAssembler
+from pyspark.ml import Pipeline
+
+# ML models
+from pyspark.ml.classification import LogisticRegression
+from pyspark.ml.evaluation import BinaryClassificationEvaluator
+from pyspark.ml.classification import DecisionTreeClassifier
+from pyspark.ml.classification import RandomForestClassifier
+from pyspark.ml.classification import GBTClassifier
+from pyspark.ml.tuning import ParamGridBuilder, CrossValidator
 
 random.seed(1)
 
@@ -96,27 +109,93 @@ def data_processing(df):
         if col not in ['user_id', 'feature_2', 'label']:
             df.select(col).describe().show()
     
-    # dataset.select('label').distinct().rdd.map(lambda r: r[0]).collect()
-    # possible values = 0, 1
-    df = convertColumn(df, ['label'], IntegerType())
-    # dataset.select('feature_6').distinct().rdd.map(lambda r: r[0]).collect()
-     # possible values = 1, 2, 3, 4
-    df = convertColumn(df, ['feature_6'], IntegerType())
-    # dataset.select('feature_2').distinct().rdd.map(lambda r: r[0]).collect()
-    # possible values = A, B, C
-    df = convertColumn(df, ['feature_2'], StringType())
+    # # dataset.select('label').distinct().rdd.map(lambda r: r[0]).collect()
+    # # possible values = 0, 1
+    df = convertColumn(dataset, ['label'], IntegerType())
     # modify the rest of the variable to DoubleType 
-    for col in df.columns:
+    for col in dataset.columns:
         if col not in ['user_id', 'feature_2', 'feature_6', 'label']:
             df = convertColumn(df, [col], DoubleType())
+
+    df = df.select('label', 'feature_1','feature_2', 'feature_3','feature_4','feature_5', 'feature_6', 'feature_7','feature_8','feature_9', 'feature_10')
+    cols = df.columns
+
+    categoricalColumns = ['feature_2']
+    stages = list()
+    for categoricalCol in categoricalColumns:
+        stringIndexer = StringIndexer(inputCol = categoricalCol, outputCol = categoricalCol + 'Index')
+        encoder = OneHotEncoderEstimator(inputCols=[stringIndexer.getOutputCol()], outputCols=[categoricalCol + "classVec"])
+        stages += [stringIndexer, encoder]
+
+    numericCols = ['feature_1', 'feature_3','feature_4','feature_5', 'feature_6', 'feature_7','feature_8','feature_9', 'feature_10']
+    assemblerInputs = [c + "classVec" for c in categoricalColumns] + numericCols
+    assembler = VectorAssembler(inputCols=assemblerInputs, outputCol="features")
+    stages += [assembler]
+
+    pipeline = Pipeline(stages = stages)
+    pipelineModel = pipeline.fit(df)
+    df = pipelineModel.transform(df)
+    selectedCols = ['features'] + cols
+    df = df.select(selectedCols)
     
     return df
 
 
 def build_model(df):
+    """
+    this function implements three models: logistic regression, decision trees and random forest
+    :df: processed dataframe
+    :result: None
+    """
     
     # Split the data into train and test sets
     train_data, test_data = df.randomSplit([.8,.2],seed=7)
+    
+    print("Training Dataset Count: {0}".format(train_data.count()))
+    print("Test Dataset Count: {0}".format(test_data.count()))
+
+    lr = LogisticRegression(featuresCol = 'features', labelCol = 'label', maxIter=10)
+    lr_model = lr.fit(train_data)
+
+    training_summary = lr_model.summary
+
+    lr_predictions = lr_model.transform(test_data)
+
+    evaluator = BinaryClassificationEvaluator()
+    print('Test Area Under ROC', evaluator.evaluate(lr_predictions))
+
+    dt = DecisionTreeClassifier(featuresCol = 'features', labelCol = 'label', maxDepth = 3)
+    df_model = dt.fit(train_data)
+    df_predictions = df_model.transform(test_data)
+
+    evaluator = BinaryClassificationEvaluator()
+    print('Test Area Under ROC', evaluator.evaluate(df_predictions))
+
+    rf = RandomForestClassifier(featuresCol = 'features', labelCol = 'label')
+    rf_model = rf.fit(train_data)
+    rf_predictions = rf_model.transform(test_data)
+
+    evaluator = BinaryClassificationEvaluator()
+    print('Test Area Under ROC', evaluator.evaluate(rf_predictions))
+    
+    gbt = GBTClassifier(maxIter=10)
+    gbt_model = gbt.fit(train_data)
+    gbt_predictions = gbt_model.transform(test_data)
+
+    evaluator = BinaryClassificationEvaluator()
+    print('Test Area Under ROC', evaluator.evaluate(gbt_predictions))
+
+    # cross-validation
+    paramGrid = (ParamGridBuilder()
+                 .addGrid(gbt.maxDepth, [2, 4, 6])
+                 .addGrid(gbt.maxBins, [20, 60])
+                 .addGrid(gbt.maxIter, [10, 20])
+                 .build())
+    cv = CrossValidator(estimator=gbt, estimatorParamMaps=paramGrid, evaluator=evaluator, numFolds=5)
+    # Run cross validations.  This can take about 6 minutes since it is training over 20 trees!
+    cv_gbt_odel = cv.fit(train_data)
+    cv_gbt_predictions = cv_gbt_odel.transform(test_data)
+    evaluator.evaluate(cv_gbt_predictions)
         
 def main():
     
