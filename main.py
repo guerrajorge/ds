@@ -8,6 +8,7 @@ from pyspark.sql import Row
 from pyspark.sql.types import StringType, IntegerType, DoubleType
 from pyspark.ml.feature import OneHotEncoderEstimator, StringIndexer, VectorAssembler
 from pyspark.ml import Pipeline
+from pyspark.sql.functions import isnan, when, count, col
 
 # ML models
 from pyspark.ml.classification import LogisticRegression
