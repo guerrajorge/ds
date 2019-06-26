@@ -39,40 +39,46 @@ def main():
     # split each line and obtain user_id and labels
     label_rdd = rdd.map(lambda line: line.split('\t'))
     # convert label_rdd to df
-    label_df = label_rdd.map(lambda line: Row(user_name=line[0], label=line[1])).toDF()
+    label_df = label_rdd.map(lambda line: Row(user_id=line[0], label=line[1])).toDF()
     
-    # merging all the dataframes
-    print('df schema')
-    df.printSchema()
-    print('number of cols = {0}, rows={1}'.format(len(df.columns), df.count()))
+    print('merging json and custom')
+    df_n_cols, df_n_rows = len(df.columns), df.count()
+    print('number of cols = {0}, rows={1}'.format(df_n_cols, df_n_rows))
     # merge df with the rest of the features df based on user_id
-    df = df.join(feat_9_10_df,['user_id'],'inner')
-    print('df schema after merge')
-    df.printSchema()
+    df_2 = df.join(feat_9_10_df,['user_id'],'inner')
+    df_2_n_cols, df_2_n_rows = len(df_2.columns), df_2.count()
     # sanity check
-    print('number of cols = {0}, rows={1}'.format(len(df.columns), df.count()))
-
-    print('first 5 observations')
-    df.show(5, truncate=True)
-
-    print('datatype columns')
-    df.printSchema()
-
-    print('first 5 observations')
-    df.show(5, truncate=True)
+    print('number of cols = {0}, rows={1}'.format(df_2_n_cols, df_2_n_rows))
     
-
+    if df_2_n_rows == df_n_rows:
+        print('same user_id found in both files')
+    else:
+        print('diff user_id found in both files')
+    
+    print('df schema after merge')
+    df_2.printSchema()
+    print('first 5 observations')
+    df_2.show(5, truncate=True)
+    
+    print('merging json + custom and tsv')
+    # merge new df with the labels df based on user_id
+    dataset = df_2.join(label_df,['user_id'],'inner')
+    dataset_n_cols, dataset_n_rows = len(dataset.columns), dataset.count()
+    # sanity check
+    print('number of cols = {0}, rows={1}'.format(dataset_n_cols, dataset_n_rows))
+    
+    if dataset_n_rows == df_n_rows:
+        print('same user_id found in both files')
+    else:
+        print('diff user_id found in both files')
+    
+    print('df schema after merge')
+    dataset.printSchema()
+    print('first 5 observations')
+    dataset.show(5, truncate=True)
+    
 
     spark.stop()
-
-
-# TO DO:
-# 1. check for types of variables:
-    # - Useless = unique, discrete data with no potential relationship with the outcome variable. A useless feature has high cardinality.
-    # - Ratio (equal spaces between values and a meaningful zero value — mean makes sense)
-    # - Interval (equal spaces between values, but no meaningful zero value — mean makes sense)
-    # - Ordinal (first, second, third values, but not equal space between first and second and second and third — median makes sense)
-    # - Nominal (no numerical relationship between the different categories — mean and median are meaningless). You can one-hot-encode or hash nominal features. Do not ordinal encode them because the relationship between the groups cannot be reduced to a monotonic function. The assigning of values would be random.
     
 if __name__ == '__main__':
     
