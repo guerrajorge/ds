@@ -7,7 +7,7 @@ import random
 random.seed(1)
 
 
-def data_merger():
+def data_merger(spark):
     """
     combine all the files
     :return: a agregated dataframe
@@ -19,11 +19,6 @@ def data_merger():
     #	samples.json = user_id, features_[1|8]
     #	samples.customs = user_id, features_[9|10]
     #	samples.tsv = user_id, labels
-    
-    # creating spark object
-    spark = SparkSession.builder.getOrCreate()
-    # supressing INFO logs
-    spark.sparkContext.setLogLevel("ERROR")
     
     # create sparkContext object
     sc = spark.sparkContext
@@ -125,17 +120,22 @@ def build_model(df):
         
 def main():
     
+    # creating spark object
+    spark_object = SparkSession.builder.getOrCreate()
+    # supressing INFO logs
+    spark.sparkContext.setLogLevel("ERROR")
+    
     print('\n\nRunning Spark Data Munging\n\n')
     
     # function to merge files
-    dataset = data_merger()
+    dataset = data_merger(spark=spark_object)
     
     # function to process the dataset
     dataset = data_processing(df=dataset)
     
     build_model(df=dataset)
 
-    spark.stop()
+    spark_object.stop()
     
 if __name__ == '__main__':
     
