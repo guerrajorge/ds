@@ -123,7 +123,7 @@ def main():
     # creating spark object
     spark_object = SparkSession.builder.getOrCreate()
     # supressing INFO logs
-    spark.sparkContext.setLogLevel("ERROR")
+    spark_object.sparkContext.setLogLevel("ERROR")
     
     print('\n\nRunning Spark Data Munging\n\n')
     
