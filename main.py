@@ -161,37 +161,6 @@ def data_processing(df):
     return df
 
 
-def evaluation_metrics(model, x_test):
-    
-    # Compute raw scores on the test set
-    predictionAndLabels = x_test.rdd.map(lambda cl: (float(model.predict(cl.features)), cl.label))
-
-    # Instantiate metrics object
-    metrics = BinaryClassificationMetrics(predictionAndLabels)
-
-    # Overall statistics
-    precision = metrics.precision()
-    recall = metrics.recall()
-    f1Score = metrics.fMeasure()
-    print("Summary Stats")
-    print("Precision = {0}".format(precision))
-    print("Recall = {0}".format(recall))
-    print("F1 Score = {0}".format(f1Score))
-
-    # Statistics by class
-    labels = data.map(lambda lp: lp.label).distinct().collect()
-    for label in sorted(labels):
-        print("Class %s precision = {0}".format((label, metrics.precision(label))))
-        print("Class %s recall = {0}".format((label, metrics.recall(label))))
-        print("Class %s F1 Measure = {0}".format((label, metrics.fMeasure(label, beta=1.0))))
-
-    # Weighted stats
-    print("Weighted recall = {0}".format(metrics.weightedRecall))
-    print("Weighted precision = {0}".format(metrics.weightedPrecision))
-    print("Weighted F(1) Score = {0}".format(metrics.weightedFMeasure()))
-    print("Weighted F(0.5) Score = {0}".format( metrics.weightedFMeasure(beta=0.5)))
-    print("Weighted false positive rate = {0}".format(metrics.weightedFalsePositiveRate))
-
 def build_model(df):
     """
     this function implements three models: logistic regression, decision trees and random forest
@@ -214,7 +183,6 @@ def build_model(df):
     lr_predictions = lr_model.transform(test_data)
 
     evaluator = BinaryClassificationEvaluator()
-    evaluation_metrics(model=lr_model, x_test=test_data)
     print('Logistic Regression Test Area Under ROC = {0}'.format(evaluator.evaluate(lr_predictions)))
 
     dt = DecisionTreeClassifier(featuresCol = 'features', labelCol = 'label', maxDepth = 3)
